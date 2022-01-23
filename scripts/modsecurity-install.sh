@@ -8,12 +8,58 @@ process_present() {
     fi
 }
 
+user_present() {
+    if [ -z "$(getent passwd $1)" ]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
 if [[ $EUID -ne 0 ]]; then
    	echo "Must be run as root."
    	exit 1
 else
+
+    # Create www-data group if not present
+    if group_present "www-data"; then
+        echo "www-data group is present."
+    else
+        echo "www-data group is not present. Creating..."
+        groupadd www-data
+    fi
+    # Create www-data user if not present
+    if user_present "www-data"; then
+        echo "www-data user is present."
+    else
+        echo "www-data user is not present. Creating..."
+        useradd -m www-data
+        # add www-data to www-data group
+        usermod -a -G www-data www-data
+    fi
     # Install Apache2-Modsecurity
-    if process_present "apache2"; then    
+    if process_present "apache2"; then
+        # get APACHE_RUN_USER
+        APACHE_RUN_USER=$(grep -Po 'APACHE_RUN_USER=\K[^ ]*' /etc/apache2/envvars)
+        # get APACHE_RUN_GROUP
+        APACHE_RUN_GROUP=$(grep -Po 'APACHE_RUN_GROUP=\K[^ ]*' /etc/apache2/envvars)
+        # Checks if Apache2 is running as root
+        if $APACHE_RUN_USER == "root"; then
+            # change apache user to www-data
+            sed -i 's/APACHE_RUN_USER=root/APACHE_RUN_USER=www-data/g' /etc/apache2/envvars
+            # change apache group to www-data
+            sed -i 's/APACHE_RUN_GROUP=root/APACHE_RUN_GROUP=www-data/g' /etc/apache2/envvars            
+            # loop through all sites in apache2 sites-enabled
+            for site in /etc/apache2/sites-enabled/*; do
+                # get DocumentRoot from site
+                echo $site
+                DOCUMENTROOT=$(grep -Po 'DocumentRoot \K[^ ]*' $site)
+                # change owner of DOCUMENTROOT to www-data
+                chown -R www-data:www-data $DOCUMENTROOT
+            done
+            service apache2 restart
+        fi       
+
         apt install libapache2-mod-security2 -y
         a2enmod headers
         service apache2 restart
@@ -39,6 +85,21 @@ else
 
     # Install Nginx-Modsecurity
     if process_present "nginx"; then
+        # get nginx user
+        NGINX_USER=$(grep -Po 'user \K[^ ;]*' /etc/nginx/nginx.conf)
+        # if NGINX_USER is root
+        if $NGINX_USER == "root"; then
+            # change nginx user to www-data
+            sed -i 's/user root/user www-data/g' /etc/nginx/nginx.conf
+            # loop throguh all sites in nginx sites-enabled
+            for site in /etc/nginx/sites-enabled/*; do
+                # get DocumentRoot from site
+                DOCUMENTROOT=$(grep -Po '^\s*root \K[^ ;]*' $site)
+                # change owner of DOCUMENTROOT to www-data
+                chown -R www-data:www-data $DOCUMENTROOT
+            done
+            service nginx restart
+        fi
         apt-get install -y apt-utils autoconf automake build-essential git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpcre++-dev libtool libxml2-dev libyajl-dev pkgconf wget zlib1g-dev
 
         #ModSecurity Installation
