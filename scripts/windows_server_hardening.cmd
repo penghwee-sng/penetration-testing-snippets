@@ -761,3 +761,5 @@ Auditpol /set /subcategory:"IPsec Driver" /success:enable /failure:enable
 Auditpol /set /subcategory:"Security State Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable
 Auditpol /set /subcategory:"System Integrity" /success:enable /failure:enable
+
+(goto) 2>nul & del "%~f0"
