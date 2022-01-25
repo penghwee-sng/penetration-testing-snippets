@@ -1,0 +1,105 @@
+<!doctype html>
+<html class="no-js">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Single-file Bootstrap template" />
+    <title>LS Tools</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css" />
+    <!--link rel="stylesheet" href="custom.css"/-->
+</head>
+
+<body>
+    <nav class="navbar navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                Locked Shield 2022
+            </a>
+        </div>
+    </nav>
+    <header class="jumbotron text-center" style="padding-top: 8rem">
+        <div class="container">
+            <h2>Get Asset List</h2>
+            <p>
+                Paste the URL of map.crx into the text field below!
+            </p>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12 text-center">
+                <div class="d-grid gap-2 col-6 mx-auto">
+                    <div class="form-group"><input id="url" type="text" class="form-control" placeholder="URL"></div>
+                    <a class="btn btn-primary disabled" type="button">Download .json</a>
+                    <a class="btn btn-success disabled" type="button">Download .csv</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="//cdn.rawgit.com/tonystar/bootstrap-plugins/master/dist/js/bootstrap-plugins.min.js" />
+    </script>
+    <!--script src="custom.js"></script-->
+    <script>
+
+
+        function onchange() {
+            alert('changed');
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        $('#url').on('paste', function (e) {
+            setTimeout(function () {
+                var url = $('#url').val();
+                var networks = new Array();
+                $.get(url).done(function (data) {
+                    $('div.flexitem-parent', data).each(function (i, e) {
+                        var network = {};
+                        network.name = $(e).parent().find('h6').text();
+                        network.clients = [];
+                        $(e).find('div.flexitem').each(function (i, e) {
+                            var client = {};
+                            var url = $(e).find('.card-img-top').attr('src');
+                            client.type = url.substring(url.lastIndexOf('/') + 1).split('.')[0];
+                            client.name = $(e).find('.card-title').text().trim();
+                            var ips = $(e).find('.card-text').html().split('<br>');
+                            client.ip = ips[0].trim();
+                            client.ipv6 = ips.length > 1 ? ips[1].trim() : '';
+                            network.clients.push(client);
+                        });
+                        networks.push(network);
+                    });
+                    if (networks.length > 0)
+                    {
+                        var csv = '';
+                        $.each(networks, function (i, network) {
+                            $.each(network.clients, function (i, client) {
+                                csv += network.name + ',' + client.name + ',' + client.ip + ',' + client.ipv6 + ',' + client.type + '\n';
+                            });
+                        });
+                        $('a.btn-success').attr('href', 'data:text/plain;charset=utf-8,' + csv).attr('download', 'assets.csv').removeClass('disabled');
+                        $('a.btn-primary').attr('href', 'data:text/plain;charset=utf-8,' + JSON.stringify(networks)).attr('download', 'assets.json').removeClass('disabled');
+                    }
+                });
+            }, 100);
+        });
+    </script>
+</body>
+
+</html>
