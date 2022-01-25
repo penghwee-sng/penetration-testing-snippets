@@ -1,0 +1,44 @@
+
+# MIL
+wget http://10.151.8.71:8080/splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz && tar -xvf splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz  -C /opt/ && cd /opt/splunkforwarder/bin && ./splunk start --accept-license --answer-yes --auto-ports --no-prompt --seed-passwd changeme && ./splunk add forward-server 61.16.103.155:9997 -auth admin:changeme && cd /opt/splunkforwarder/etc/system/local && printf "[default]\nhost=$HOSTNAME\ndisabled=0\nindex=mil\n\n[monitor:///var/log/*]" > /opt/splunkforwarder/etc/system/local/inputs.conf && cd /opt/splunkforwarder/bin && ./splunk restart && rm ~/splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz 
+
+
+# Power
+
+wget http://10.151.8.71:8080/splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz && tar -xvf splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz  -C /opt/ && cd /opt/splunkforwarder/bin && ./splunk start --accept-license --answer-yes --auto-ports --no-prompt --seed-passwd changeme && ./splunk add forward-server 61.16.103.155:9997 -auth admin:changeme && cd /opt/splunkforwarder/etc/system/local && printf "[default]\nhost=$HOSTNAME\ndisabled=0\nindex=power\n\n[monitor:///var/log/*]" > /opt/splunkforwarder/etc/system/local/inputs.conf && cd /opt/splunkforwarder/bin && ./splunk restart && rm ~/splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz
+
+
+
+# Install clamav
+# Do note that they might ratelimit us when we use freshclam to download the new virus definitions
+apt-get install clamav clamav-daemon -y && systemctl stop clamav-freshclam && freshclam && systemctl start clamav-freshclam 
+
+
+
+Breakdown
+
+# Download splunk forwarder.
+wget http://10.151.8.71:8080/splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz 
+
+# Extract the package
+tar -xvf splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz  -C /opt/ 
+
+# cd to splunk directory
+cd /opt/splunkforwarder/bin
+
+# Start and setup splunk
+./splunk start --accept-license --answer-yes --auto-ports --no-prompt --seed-passwd changeme
+
+./splunk add forward-server 61.16.103.155:9997 -auth admin:changeme
+
+# cd to inputs directory
+cd /opt/splunkforwarder/etc/system/local
+
+# Create config file to tell splunk what to forward (in this case for power)
+printf "[default]\nhost=$HOSTNAME\ndisabled=0\nindex=power\n\n[monitor:///var/log/*]" > /opt/splunkforwarder/etc/system/local/inputs.conf 
+
+# cd back to splunk directory and restart the service
+cd /opt/splunkforwarder/bin && ./splunk restart
+
+# Delete the downloaded file
+rm ~/splunkforwarder-8.2.4-87e2dda940d1-Linux-x86_64.tgz
