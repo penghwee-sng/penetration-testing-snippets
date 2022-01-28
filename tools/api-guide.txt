@@ -1,0 +1,167 @@
+#!/bin/bash
+          #
+          # Description
+          #   Commandline script that authenticates to KEYCLOAK and queries all systems from EXPO for your team
+          #
+          # Requirements:
+          #    * curl
+          #    * jq
+          #
+
+          USERNAME="$1"
+          PASSWORD="$2"
+          CLIENT_ID="expo"
+
+          while [[ -z "$USERNAME" || -z "$PASSWORD" ]]; do
+            echo "Username or password missing. Please enter them now"
+            read -p 'Username: ' USERNAME
+            read -sp 'Password: ' PASSWORD
+            echo ""
+          done;
+
+          API_URL="https://expo.crx/api"
+          KEYCLOAK_URL=https://expo-keycloak.crx/auth/realms/crx/protocol/openid-connect/token
+
+          ### STANDARD FLOW
+          export TOKEN=$(curl -X POST "$KEYCLOAK_URL" \
+            --insecure \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "username=$USERNAME" \
+            --data-urlencode "password=$PASSWORD" \
+            -d 'grant_type=password' \
+            -d "client_id=$CLIENT_ID" | jq -r '.access_token')
+
+          echo "==============================================================================================="
+          echo "==============================================================================================="
+          echo "==============================================================================================="
+          echo "TOKEN:"
+          echo $TOKEN
+          KEYCLOAK_URL=https://expo-keycloak.crx/auth/realms/crx/protocol/openid-connect/userinfo
+          echo "==============================================================================================="
+          echo "==============================================================================================="
+          echo "==============================================================================================="
+          echo "DEBUG - CHECK USERINFO:"
+          echo $KEYCLOAK_URL
+          curl -X GET "$KEYCLOAK_URL" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -H "Authorization: Bearer ${TOKEN}" | jq
+          echo "==============================================================================================="
+          echo "==============================================================================================="
+          echo "==============================================================================================="
+
+          echo "curl -X GET '$API_URL' -H 'Authorization: Bearer ${TOKEN}'"
+
+          echo "GET ALL SYSTEMS"
+
+          json='
+          {
+          "variables":{"first":250,"search":"","filters":{"team":[],"hasServices":[]},"sort":{"by":"expo_name","order":"asc"}},
+          "query":"query ($first: Int, $after: String, $before: String, $last: Int, $filters: SystemPaginationArgsFilters, $search: String, $sort: SortArgs){
+            systems(first: $first, after: $after, before: $before, last: $last, filters: $filters, search: $search, sort: $sort ) {
+              edges {
+                cursor
+                node {
+                  _id
+                  expo_name
+                  description
+                  team_nr_xx
+                  domain
+                  zones
+                  os
+                  team
+                  networks {
+                    connection_name
+                    name
+                    ipv4
+                    ipv6
+                    ipv4_gateway
+                    ipv6_gateway
+                  }
+                  services {
+                    u_name
+                    name
+                    checks {
+                      u_check_id
+                      availability_id
+                      availability_status
+                      source_network
+                      protocol
+                      ip
+                      port
+                    }
+                  }
+                }
+              }
+              totalCount
+              pageInfo {
+                startCursor
+                endCursor
+                hasPreviousPage
+                hasNextPage
+                }
+              }
+            }"
+          }
+          '
+
+          echo $json | curl "$API_URL" \
+            --insecure \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            -H "Authorization: Bearer ${TOKEN}" \
+            --data-binary @- | jq
+          echo "==============================================================================================="
+
+          echo "GET ALL CREDENTIALS"
+          json='
+          {
+            "variables":{"first":1000,"search":"","filters":{},"sort":{"by":"realm","order":"asc"}},
+            "query":"query ($first: Int, $after: String, $before: String, $last: Int, $filters: CredentialPaginationArgsFilters, $search: String, $sort: SortArgs){
+              credentials(first: $first, after: $after, before: $before, last: $last, filters: $filters, search: $search, sort: $sort ) {
+                edges {
+                  cursor
+                  node {
+                    _id
+                    realm
+                    email
+                    department
+                    displayname
+                    username
+                    password
+                    domain
+                    description
+                    team
+                    services {
+                      uri
+                      description
+                      systemsList
+                    }
+                    updated_time
+                  }
+                }
+                totalCount
+                pageInfo {
+                  startCursor
+                  endCursor
+                  hasPreviousPage
+                  hasNextPage
+                }
+              }
+            }"
+          }
+          '
+
+          
+Update single credential for your team ( BTXX format )
+          json='
+          {
+            "variables":{"realm":"blog.mil.01.crx","username":"admin","password":"testingNewPassword","team":"BT01"},
+            "query":"mutation ($realm: String!, $username: String!, $password: String!, $team: String!) {
+              updateCredentialPassword( realm: $realm username: $username password: $password team: $team ) {
+                realm
+                username
+                password
+                team
+              }
+            }"
+          }
+          '

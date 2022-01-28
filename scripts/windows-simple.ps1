@@ -1,8 +1,7 @@
 # Register session
 $AdminUser = "administrator";
-$AdminPass = "GongXiFaCai";
+$AdminPass = "GongXiFaCai!!22";
 $ConfigName = "AdminForJack"
-$PathToSEP = "\\fs\Public\Security\setup.exe";
 $Credential = [PSCredential]::new($AdminUser, $(ConvertTo-SecureString $AdminPass -AsPlainText -Force));
 $Computers = Get-ADComputer -Filter 'OperatingSystem -like "Windows*"' | Select-Object -ExpandProperty DNSHostName
 

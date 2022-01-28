@@ -79,7 +79,7 @@
                             client.type = url.substring(url.lastIndexOf('/') + 1).split('.')[0];
                             client.name = $(e).find('.card-title').text().trim();
                             var ips = $(e).find('.card-text').html().split('<br>');
-                            client.ip = ips[0].trim();
+                            client.ip = ips[0].split('/')[0].trim();
                             client.ipv6 = ips.length > 1 ? ips[1].trim() : '';
                             network.clients.push(client);
                         });
